@@ -1,27 +1,29 @@
-# Luganodynamics - Robotic Cable Pickup Simulation
+# Luganodynamics
 
-A Python simulation environment for training robotic hands to pick up cables from conveyor belts using a **Simulation-First approach**.
+## Robotic Cable Pickup Simulation
 
-## Overview
+A Python simulation for training a robotic hand to pick up flexible cables from a conveyor belt using a **Simulation-First** approach.
 
-This project simulates a robotic hand picking up cables with connectors from a moving conveyor belt. The system uses RGB-D (color + depth) images from an overhead camera to detect cables and estimate their pose for reliable grasping.
+### Overview
 
-### Key Features
+This simulation models:
+- **Flexible cables** as elongated objects that can be curved or twisted
+- **Conveyor belt** moving cables through a pickup zone
+- **Robotic hand/gripper** that computes optimal grasp poses
+- **Training environment** for developing and evaluating grasping strategies
 
-- **Flexible Cable Simulation**: Cables are modeled as elongated, partly flexible objects that can be curved or twisted
-- **RGB-D Vision Processing**: Simulates overhead camera with depth sensing for cable detection and pose estimation
-- **Robotic Hand Control**: Gripper control with inverse kinematics and grasp planning
-- **Training Framework**: Collect data and metrics for training machine learning models
-- **Simulation-First Approach**: Train in simulation before deploying to real hardware
+The simulation focuses on computing stable grasp poses that capture the orientation and position of cables at the moment of pickup, accounting for their flexible and variable shapes.
 
-## Installation
+### Features
 
-### Prerequisites
+- **Cable Modeling**: Flexible cable representation with variable curvature and twist
+- **Grasp Pose Computation**: Automatic calculation of optimal grasp position, orientation, and approach vector
+- **Simulation Environment**: Complete environment integrating cables, conveyor, and robotic hand
+- **Visualization**: 2D and 3D visualization of simulation states
+- **Training Framework**: Built-in training loop with metrics tracking
+- **Extensible Design**: Modular architecture for easy customization
 
-- Python 3.7 or higher
-- pip package manager
-
-### Setup
+### Installation
 
 1. Clone the repository:
 ```bash
@@ -34,147 +36,165 @@ cd Luganodynamics
 pip install -r requirements.txt
 ```
 
-## Usage
-
 ### Quick Start
 
-Run the example simulation:
-
+Run the quick start example:
 ```bash
-python run_simulation.py
+python examples/quickstart.py
 ```
 
 This will:
-1. Initialize the simulation environment
-2. Run a demonstration episode with 5 cables
-3. Execute 100 training episodes
-4. Display performance statistics
+1. Create a simulation environment
+2. Spawn cables on the conveyor belt
+3. Attempt to grasp cables as they pass through the pickup zone
+4. Generate a visualization of the results
 
-### Using the Simulation in Your Code
+### Usage Examples
+
+#### Basic Simulation
 
 ```python
-from src.simulation.environment import SimulationEnvironment
-from src.simulation.cable import Cable
+from src.simulation import SimulationEnvironment
+from src.visualization import SimulationVisualizer
 
-# Create simulation environment
-env = SimulationEnvironment()
+# Create simulation
+sim = SimulationEnvironment(
+    conveyor_length=2.0,
+    conveyor_width=0.5,
+    conveyor_speed=0.1
+)
 
-# Add cables to conveyor belt
-for i in range(5):
-    cable = Cable()
-    env.add_cable_to_belt(cable, x_position=i * 0.4)
+# Spawn cables
+for _ in range(3):
+    sim.spawn_random_cable()
 
-# Run simulation episode
-results = env.run_episode(num_cables=5, max_steps=10000)
+# Run simulation
+for _ in range(100):
+    cables_in_zone = sim.conveyor.get_cables_in_pickup_zone(
+        sim.pickup_zone_center,
+        sim.pickup_zone_radius
+    )
+    action = 'grasp' if cables_in_zone else None
+    sim.step(action)
 
-print(f"Success rate: {results['success_rate']:.1%}")
+# Visualize
+visualizer = SimulationVisualizer(sim)
+visualizer.plot_2d_snapshot(save_path='result.png')
 ```
 
-## Architecture
+#### Training
+
+```python
+from src.simulation import SimulationEnvironment
+from src.training import SimpleTrainer
+
+# Create simulation and trainer
+sim = SimulationEnvironment()
+trainer = SimpleTrainer(sim)
+
+# Train over multiple episodes
+episode_stats = trainer.train(num_episodes=20)
+
+# Evaluate
+eval_stats = trainer.evaluate(num_episodes=5)
+```
+
+### Running Demos
+
+The `examples/` directory contains demonstration scripts:
+
+**Full Demo** (includes visualization and training):
+```bash
+python examples/demo.py
+```
+
+This runs:
+- Basic simulation with step-by-step visualization
+- Single episode demonstration
+- Training over multiple episodes with metrics
 
 ### Project Structure
 
 ```
 Luganodynamics/
 ├── src/
-│   ├── simulation/        # Core simulation components
-│   │   ├── cable.py       # Cable object with flexible properties
-│   │   ├── conveyor.py    # Conveyor belt simulation
-│   │   ├── camera.py      # RGB-D camera simulation
-│   │   └── environment.py # Main simulation environment
-│   ├── vision/            # Computer vision components
-│   │   └── cable_detector.py  # Cable detection and pose estimation
-│   ├── robot/             # Robot control components
-│   │   └── gripper.py     # Robotic hand/gripper controller
-│   └── utils/             # Utility functions
-│       └── config.py      # Configuration parameters
-├── tests/                 # Unit tests
-├── run_simulation.py      # Example simulation script
-└── requirements.txt       # Python dependencies
+│   ├── __init__.py          # Package initialization
+│   ├── cable.py             # Cable model (flexible elongated object)
+│   ├── conveyor_belt.py     # Conveyor belt model
+│   ├── robotic_hand.py      # Robotic hand with grasp pose computation
+│   ├── simulation.py        # Main simulation environment
+│   ├── visualization.py     # Visualization tools
+│   └── training.py          # Training framework
+├── examples/
+│   ├── demo.py              # Full demonstration script
+│   └── quickstart.py        # Quick start example
+├── requirements.txt         # Python dependencies
+└── README.md               # This file
 ```
 
-### Components
+### Key Concepts
 
-#### 1. Cable Object (`src/simulation/cable.py`)
-- Represents cables with connectors on the conveyor
-- Models flexible, elongated objects that can curve or twist
-- Provides grasp pose calculation for robot pickup
+#### Cable Representation
+Cables are modeled as a series of connected points forming a curve. Each cable has:
+- Length and number of segments
+- Position and orientation in 3D space
+- Variable curvature and twist parameters
 
-#### 2. Conveyor Belt (`src/simulation/conveyor.py`)
-- Simulates moving conveyor belt
-- Manages cable placement and movement
-- Tracks cables at pickup position
+#### Grasp Pose
+A grasp pose consists of:
+- **Position**: 3D coordinates where to grasp
+- **Orientation**: Direction vector of the cable at grasp point
+- **Approach Vector**: Direction from which the gripper approaches
+- **Grip Width**: Required gripper opening width
+- **Confidence**: Score indicating grasp stability (0-1)
 
-#### 3. RGB-D Camera (`src/simulation/camera.py`)
-- Simulates overhead camera with depth sensing
-- Generates RGB and depth images
-- Provides camera calibration parameters
+#### Simulation-First Approach
+The simulation environment allows:
+1. Rapid iteration and testing of grasping strategies
+2. Collection of training data without physical hardware
+3. Evaluation of different cable configurations
+4. Metrics tracking for performance analysis
 
-#### 4. Cable Detector (`src/vision/cable_detector.py`)
-- Detects cables in RGB-D images
-- Estimates 3D pose of detected cables
-- Computes optimal grasp poses
+### Extending the Simulation
 
-#### 5. Robotic Hand (`src/robot/gripper.py`)
-- Controls gripper position and orientation
-- Manages grasp sequences
-- Provides inverse kinematics (simplified)
+The modular design allows easy extension:
 
-#### 6. Simulation Environment (`src/simulation/environment.py`)
-- Integrates all components
-- Manages simulation loop
-- Collects training data and metrics
+**Custom Cable Shapes**:
+```python
+from src.cable import Cable
+cable = Cable(length=1.0)
+cable.generate_shape(curvature=3.0, twist=np.pi/2)
+```
 
-## Configuration
+**Custom Grasp Strategies**:
+Inherit from `RoboticHand` and override `compute_grasp_pose()`:
+```python
+class CustomRoboticHand(RoboticHand):
+    def compute_grasp_pose(self, cable):
+        # Your custom grasp computation
+        pass
+```
 
-Simulation parameters can be adjusted in `src/utils/config.py`:
+**Integration with RL Libraries**:
+The `SimulationEnvironment` provides:
+- `get_state_for_training()`: State vector for neural networks
+- `step(action)`: Standard RL step interface
+- Episode-based training with metrics
 
-- **Conveyor settings**: Length, width, speed
-- **Cable properties**: Dimensions, flexibility
-- **Camera settings**: Position, field of view, resolution
-- **Robot parameters**: Reach, speed, gripper width
-- **Training settings**: Episodes, cables per episode
+### Requirements
 
-## Training Approach
+- Python 3.7+
+- NumPy >= 1.21.0
+- Matplotlib >= 3.4.0
 
-The simulation supports a **Simulation-First** approach:
+### License
 
-1. **Data Collection**: Run episodes to collect RGB-D images and successful grasp poses
-2. **Model Training**: Train neural networks to predict grasp poses from images
-3. **Validation**: Test trained models in simulation with various cable configurations
-4. **Transfer**: Deploy trained models to real robot hardware
+This project is available for use and modification.
 
-### Key Advantages
+### Contributing
 
-- **Safe Training**: No risk to hardware during learning
-- **Rapid Iteration**: Fast simulation enables extensive testing
-- **Controlled Variation**: Systematically test edge cases
-- **Data Abundance**: Generate large training datasets easily
+Contributions are welcome! Feel free to submit issues or pull requests.
 
-## Problem Statement
+### Contact
 
-The cable with its connector lies on a moving conveyor belt, from which the robot must perform a reliable pickup. From a localization perspective, the connector on the conveyor is an elongated object whose full 3D shape is partly flexible, as the cable may be slightly curved or twisted when it arrives.
-
-**Solution**: The system captures RGB-D images from a calibrated overhead camera and estimates a stable grasp pose that captures the main orientation and position of the connector-cable assembly at the moment of pickup, without requiring complete rigid reconstruction.
-
-## Future Enhancements
-
-- [ ] Integration with PyBullet for physics-based simulation
-- [ ] Neural network training pipeline
-- [ ] Advanced vision algorithms (deep learning-based pose estimation)
-- [ ] Domain randomization for sim-to-real transfer
-- [ ] Support for multiple cable types and shapes
-- [ ] Real-time visualization
-- [ ] ROS integration for real robot deployment
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit issues or pull requests.
-
-## License
-
-This project is open source and available under the MIT License.
-
-## Contact
-
-For questions or feedback, please open an issue on GitHub.
+For questions or suggestions, please open an issue on GitHub.

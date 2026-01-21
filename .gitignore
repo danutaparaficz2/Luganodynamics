@@ -4,6 +4,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
+env/
+venv/
+ENV/
 build/
 develop-eggs/
 dist/
@@ -21,13 +24,10 @@ wheels/
 *.egg
 
 # Virtual environments
+.venv/
 venv/
-env/
-ENV/
-env.bak/
-venv.bak/
 
-# IDE
+# IDEs
 .vscode/
 .idea/
 *.swp
@@ -38,18 +38,16 @@ venv.bak/
 .DS_Store
 Thumbs.db
 
+# Simulation output
+*.png
+*.jpg
+*.gif
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# PyBullet cache
-*.bullet
+# pytest
+.pytest_cache/
 
-# Temporary files
-/tmp/
-*.tmp
-*.log
-
-# Training data
-data/
-models/
-checkpoints/
+# mypy
+.mypy_cache/
