@@ -53,9 +53,8 @@ class CableDetector:
         # Convert to grayscale
         gray = cv2.cvtColor(rgb_image, cv2.COLOR_BGR2GRAY)
         
-        # Simple thresholding to find objects above belt
-        # (In a real implementation, this would use the depth image)
-        _, binary = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
+        # Detect objects brighter than belt (belt is dark gray ~50, cable is ~150+)
+        _, binary = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)
         
         # Find contours
         contours, _ = cv2.findContours(
@@ -69,7 +68,7 @@ class CableDetector:
         for contour in contours:
             # Filter small contours
             area = cv2.contourArea(contour)
-            if area < 100:  # Minimum area threshold
+            if area < 50:  # Minimum area threshold (reduced from 100)
                 continue
                 
             # Get bounding box
@@ -77,7 +76,7 @@ class CableDetector:
             
             # Check if elongated (cable-like)
             aspect_ratio = max(w, h) / (min(w, h) + 1e-6)
-            if aspect_ratio < 1.5:  # Must be somewhat elongated
+            if aspect_ratio < 1.2:  # Must be somewhat elongated (reduced from 1.5)
                 continue
             
             # Create mask for this cable

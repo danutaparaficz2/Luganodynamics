@@ -123,7 +123,9 @@ class SimulationEnvironment:
         """
         if self.pickup_phase == "detect":
             # Capture image and detect cable
-            rgb, depth = self.camera.capture_rgbd([self.conveyor, self.current_cable])
+            # Pass all cables in scene for rendering
+            scene_cables = self.conveyor.get_all_cables()
+            rgb, depth = self.camera.capture_rgbd(scene_cables)
             detections = self.detector.detect_cables(rgb, depth)
             
             if len(detections) > 0:
@@ -217,7 +219,8 @@ class SimulationEnvironment:
         Returns:
             Dict with observation data
         """
-        rgb, depth = self.camera.capture_rgbd([self.conveyor])
+        scene_cables = self.conveyor.get_all_cables()
+        rgb, depth = self.camera.capture_rgbd(scene_cables)
         
         return {
             'rgb_image': rgb,

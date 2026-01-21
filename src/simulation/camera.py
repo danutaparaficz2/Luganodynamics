@@ -111,10 +111,56 @@ class RGBDCamera:
         belt_depth = np.linalg.norm(self.position - np.array([1.0, 0.0, 0.8]))
         depth_image[:, :] = belt_depth
         
-        # TODO: Render scene objects (cables) in future enhancement
-        # For now, return basic scene
+        # Render cables in the scene
+        for obj in scene_objects:
+            # Check if it's a cable (has connector_length attribute)
+            if hasattr(obj, 'connector_length'):
+                self._render_cable(obj, rgb_image, depth_image)
         
         return rgb_image, depth_image
+    
+    def _render_cable(self, cable, rgb_image: np.ndarray, depth_image: np.ndarray):
+        """Render a cable in the RGB-D image.
+        
+        Args:
+            cable: Cable object to render
+            rgb_image: RGB image to draw into
+            depth_image: Depth image to update
+        """
+        # Project cable connector to image
+        connector_center = cable.position.copy()
+        
+        # Project multiple points of the cable
+        points_2d = []
+        for i in range(5):  # Sample a few points
+            offset = np.array([i * cable.connector_length / 4, 0, 0])
+            point_3d = connector_center + offset
+            point_2d = self.project_point(point_3d)
+            if point_2d is not None:
+                points_2d.append(point_2d)
+        
+        if len(points_2d) == 0:
+            return
+        
+        # Draw cable as an elongated region
+        cable_color = np.array([200, 150, 100], dtype=np.uint8)  # Brownish color
+        
+        # Simple rectangular rendering
+        if len(points_2d) >= 2:
+            x_coords = [p[0] for p in points_2d]
+            y_coords = [p[1] for p in points_2d]
+            
+            x_min = max(0, min(x_coords) - 10)
+            x_max = min(self.width - 1, max(x_coords) + 10)
+            y_min = max(0, min(y_coords) - 10)
+            y_max = min(self.height - 1, max(y_coords) + 10)
+            
+            # Draw cable region
+            rgb_image[y_min:y_max, x_min:x_max] = cable_color
+            
+            # Update depth (cable is above belt)
+            cable_depth = np.linalg.norm(self.position - connector_center)
+            depth_image[y_min:y_max, x_min:x_max] = cable_depth
     
     def project_point(self, point_3d: np.ndarray) -> Optional[Tuple[int, int]]:
         """Project a 3D point to 2D image coordinates.
