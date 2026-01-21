@@ -2,11 +2,20 @@
 
 import numpy as np
 from typing import Optional, List, Dict
-from .cable import Cable
-from .conveyor import ConveyorBelt
-from .camera import RGBDCamera
-from ..vision.cable_detector import CableDetector
-from ..robot.gripper import RoboticHand, GripperState
+
+# Support both relative and absolute imports
+try:
+    from .cable import Cable
+    from .conveyor import ConveyorBelt
+    from .camera import RGBDCamera
+    from ..vision.cable_detector import CableDetector
+    from ..robot.gripper import RoboticHand, GripperState
+except ImportError:
+    from simulation.cable import Cable
+    from simulation.conveyor import ConveyorBelt
+    from simulation.camera import RGBDCamera
+    from vision.cable_detector import CableDetector
+    from robot.gripper import RoboticHand, GripperState
 
 
 class SimulationEnvironment:

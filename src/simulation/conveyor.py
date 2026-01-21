@@ -2,7 +2,11 @@
 
 import numpy as np
 from typing import List, Optional
-from .cable import Cable
+
+try:
+    from .cable import Cable
+except ImportError:
+    from simulation.cable import Cable
 
 
 class ConveyorBelt:
