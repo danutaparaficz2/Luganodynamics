@@ -44,6 +44,10 @@ class SimulationEnvironment:
         self.successful_grasps = 0
         self.failed_grasps = 0
         
+        # Grasp cooldown to prevent multiple attempts on same cable
+        self.last_grasp_time = -999.0
+        self.grasp_cooldown = 1.0  # seconds
+        
     def reset(self):
         """Reset the simulation to initial state."""
         self.conveyor.cables.clear()
@@ -103,6 +107,10 @@ class SimulationEnvironment:
         Returns:
             True if grasp was successful, False otherwise
         """
+        # Check cooldown period
+        if self.time - self.last_grasp_time < self.grasp_cooldown:
+            return False
+        
         # Find cables in pickup zone
         cables_in_zone = self.conveyor.get_cables_in_pickup_zone(
             self.pickup_zone_center,
@@ -111,6 +119,8 @@ class SimulationEnvironment:
         
         if not cables_in_zone:
             return False
+        
+        self.last_grasp_time = self.time
         
         # Select the cable closest to the pickup zone center
         target_cable = min(cables_in_zone, 
@@ -131,6 +141,8 @@ class SimulationEnvironment:
             self.successful_grasps += 1
             # Remove cable from conveyor (picked up)
             self.conveyor.cables.remove(target_cable)
+            # Release after successful grasp (to pick up next cable)
+            self.robotic_hand.release()
         else:
             self.failed_grasps += 1
         
